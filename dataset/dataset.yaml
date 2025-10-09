@@ -1,0 +1,11 @@
+# 茶類商品辨識資料集配置
+
+path: /Users/lishengfeng/Desktop/yolo/dataset
+train: images/train
+val: images/train  # 暫時使用同一份資料做驗證
+
+# 類別數量
+nc: 1
+
+# 類別名稱（根據 Roboflow 標註的類別）
+names: ['tea']
