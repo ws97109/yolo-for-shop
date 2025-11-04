@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO1125 智慧無人商店</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 頂部標題 -->
+        <header>
+            <div class="header-brand">
+                <div class="brand-icon">🛒</div>
+                <div class="brand-text">
+                    <h1>YOLO1125 智慧商店</h1>
+                    <p class="brand-tagline">AI 驅動 · 智能識別 · 極速結帳</p>
+                </div>
+            </div>
+            <div class="status-panel">
+                <div class="status-item">
+                    <span class="status-label">系統狀態</span>
+                    <span id="system-status" class="status-badge status-idle">● 未連線</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">人臉辨識</span>
+                    <span id="face-status" class="status-badge status-idle">未偵測</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主要內容 -->
+        <main class="main-content">
+            <!-- 左側：使用者資料 -->
+            <aside class="user-panel">
+                <h2>使用者資訊</h2>
+                <div id="user-info" class="user-card">
+                    <!-- 未登入時顯示 -->
+                    <div id="user-placeholder" class="placeholder">
+                        <p>👤</p>
+                        <p>請先登入</p>
+                    </div>
+
+                    <!-- 登入後顯示 -->
+                    <div id="user-details" class="user-details" style="display:none;">
+                        <div class="user-avatar-section">
+                            <img id="user-avatar" class="user-avatar" src="" alt="用戶頭像">
+                            <div class="user-badge">✓ 已驗證</div>
+                        </div>
+                        <div class="user-welcome">
+                            <h3><span id="user-name">使用者</span></h3>
+                            <p class="user-phone">📱 <span id="user-phone">0900-000-000</span></p>
+                            <p class="user-birthday">🎂 <span id="user-birthday">--/--</span></p>
+                            <div class="user-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">本次消費</span>
+                                    <span class="stat-value" id="current-total">NT$ 0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">累積消費</span>
+                                    <span class="stat-value" id="total-spent-amount">NT$ 0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">註冊天數</span>
+                                    <span class="stat-value" id="account-age">0 天</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <button id="view-history-btn" class="btn-secondary">
+                                <span class="btn-icon">📊</span>
+                                歷史消費
+                            </button>
+                            <button id="logout-btn" class="btn-logout">
+                                <span class="btn-icon">🚪</span>
+                                登出
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中央：鏡頭畫面 -->
+            <section class="camera-panel">
+                <h2>即時畫面</h2>
+                <div class="camera-container">
+                    <video id="camera-video" autoplay playsinline style="display: none;"></video>
+                    <canvas id="camera-canvas"></canvas>
+                    <div id="camera-error" class="error-message" style="display: none;">
+                        ❌ 無法存取鏡頭，請檢查權限設定
+                    </div>
+                    <div id="camera-loading" class="loading-message">
+                        ⏳ 正在啟動鏡頭...
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右側：購物車 -->
+            <aside class="cart-panel">
+                <h2>購物車</h2>
+                <div id="cart-items" class="cart-items">
+                    <div class="empty-cart">
+                        🛒 購物車是空的
+                    </div>
+                </div>
+                <div class="cart-summary">
+                    <div class="summary-row">
+                        <span>總數量：</span>
+                        <span id="total-quantity">0</span>
+                    </div>
+                    <div class="summary-row total">
+                        <span>總金額：</span>
+                        <span id="total-amount">NT$ 0</span>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <!-- 底部：操作按鈕 -->
+        <footer>
+            <button id="checkout-btn" class="btn-primary" disabled>
+                完成結帳
+            </button>
+        </footer>
+    </div>
+
+    <!-- 歷史消費彈出視窗 -->
+    <div id="history-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <div class="modal-icon">📊</div>
+                    <h2>消費歷史記錄</h2>
+                </div>
+                <button class="close" id="close-history-modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <!-- 統計摘要卡片 -->
+                <div class="stats-cards">
+                    <div class="stats-card">
+                        <div class="stats-icon">🛍️</div>
+                        <div class="stats-info">
+                            <span class="stats-label">總消費次數</span>
+                            <span class="stats-value" id="total-transactions">0</span>
+                        </div>
+                    </div>
+                    <div class="stats-card">
+                        <div class="stats-icon">💰</div>
+                        <div class="stats-info">
+                            <span class="stats-label">累積消費金額</span>
+                            <span class="stats-value highlight" id="total-spent">NT$ 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 交易列表 -->
+                <div class="transactions-section">
+                    <h3 class="section-title">交易明細</h3>
+                    <div id="history-list" class="history-list">
+                        <div class="loading-spinner">
+                            <div class="spinner"></div>
+                            <p>載入中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 模組 -->
+    <script src="/static/js/camera.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/cart.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

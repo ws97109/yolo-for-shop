@@ -14,16 +14,9 @@ class SupermarketModelTrainer:
 
         # 定義商品類別
         self.product_classes = {
-            0: "可樂",
-            1: "洋芋片",
-            2: "餅乾",
-            3: "礦泉水",
-            4: "牛奶",
-            5: "麵包",
-            6: "蘋果",
-            7: "香蕉",
-            8: "優格",
-            9: "泡麵"
+            0: "原翠",
+            1: "分解茶",
+
         }
 
     def create_dataset_yaml(self, data_path, output_path=None):

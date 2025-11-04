@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO1125 - 管理者介面</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 頂部導航 -->
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="brand">
+                    <div class="brand-icon">👨‍💼</div>
+                    <h1>YOLO1125 管理後台</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="refresh-btn" class="btn-secondary">
+                        <span class="btn-icon">🔄</span>
+                        重新載入
+                    </button>
+                    <a href="/index.html" class="btn-primary">
+                        <span class="btn-icon">🏠</span>
+                        返回商店
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- 統計摘要 -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-info">
+                    <div class="stat-label">總使用者數</div>
+                    <div class="stat-value" id="total-users">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🛍️</div>
+                <div class="stat-info">
+                    <div class="stat-label">總交易數</div>
+                    <div class="stat-value" id="total-transactions">0</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-info">
+                    <div class="stat-label">總營業額</div>
+                    <div class="stat-value" id="total-revenue">NT$ 0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 使用者管理表格 -->
+        <section class="users-section">
+            <div class="section-header">
+                <h2>使用者管理</h2>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜尋姓名或電話...">
+                    <span class="search-icon">🔍</span>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>頭像</th>
+                            <th>姓名</th>
+                            <th>電話</th>
+                            <th>生日</th>
+                            <th>註冊日期</th>
+                            <th>最後訪問</th>
+                            <th>累積消費</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <tr>
+                            <td colspan="8" class="loading-row">
+                                <div class="spinner"></div>
+                                <p>載入中...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- 編輯使用者 Modal -->
+    <div id="edit-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>編輯使用者資訊</h2>
+                <button class="close-btn" id="close-edit-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" id="edit-name" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>電話</label>
+                    <input type="tel" id="edit-phone" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>生日</label>
+                    <input type="date" id="edit-birthday" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-edit-btn">取消</button>
+                <button class="btn-primary" id="save-edit-btn">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 刪除確認 Modal -->
+    <div id="delete-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>確認刪除</h2>
+                <button class="close-btn" id="close-delete-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="warning-text">⚠️ 確定要刪除此使用者嗎？</p>
+                <p>此操作無法復原，將會刪除使用者的所有資料（不包含交易記錄）。</p>
+                <p class="delete-user-info">
+                    <strong>使用者：</strong><span id="delete-user-name"></span><br>
+                    <strong>電話：</strong><span id="delete-user-phone"></span>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-delete-btn">取消</button>
+                <button class="btn-danger" id="confirm-delete-btn">確定刪除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知 -->
+    <div id="toast-container"></div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

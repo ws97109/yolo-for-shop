@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO1125 - 登入 / 註冊</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <div class="brand-header">
+                <div class="logo-icon">🛒</div>
+                <h1>YOLO1125 智慧商店</h1>
+                <p class="subtitle">AI 驅動的無人購物體驗</p>
+                <div class="feature-badges">
+                    <span class="badge">🔒 安全可靠</span>
+                    <span class="badge">⚡ 快速結帳</span>
+                    <span class="badge">🎯 精準識別</span>
+                </div>
+            </div>
+
+            <!-- 選項卡 -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="customer">客戶登入</button>
+                <button class="tab-btn" data-tab="admin">管理者登入</button>
+                <button class="tab-btn" data-tab="register">註冊</button>
+            </div>
+
+            <!-- 客戶登入頁面 -->
+            <div class="tab-content active" id="customer-tab">
+                <div class="info-card">
+                    <div class="info-icon">👋</div>
+                    <h3>歡迎回來</h3>
+                    <p>使用人臉識別快速登入您的帳戶</p>
+                </div>
+
+                <div class="face-detection-area">
+                    <video id="login-video" autoplay playsinline></video>
+                    <canvas id="login-canvas" style="display:none;"></canvas>
+                    <div class="face-overlay" id="login-overlay">
+                        <div class="face-frame"></div>
+                    </div>
+                    <div class="camera-status">
+                        <span class="status-indicator"></span>
+                        <span class="status-text" id="login-status">正在啟動鏡頭...</span>
+                    </div>
+                </div>
+
+                <div class="tips-section">
+                    <div class="tip-item">
+                        <span class="tip-icon">💡</span>
+                        <span>確保光線充足</span>
+                    </div>
+                    <div class="tip-item">
+                        <span class="tip-icon">📷</span>
+                        <span>臉部正對鏡頭</span>
+                    </div>
+                    <div class="tip-item">
+                        <span class="tip-icon">😊</span>
+                        <span>保持自然表情</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="login-btn" disabled>
+                    <span class="btn-icon">🔓</span>
+                    開始人臉識別登入
+                </button>
+            </div>
+
+            <!-- 管理者登入頁面 -->
+            <div class="tab-content" id="admin-tab">
+                <div class="info-card">
+                    <div class="info-icon">👨‍💼</div>
+                    <h3>管理者登入</h3>
+                    <p>使用帳號密碼登入管理後台</p>
+                </div>
+
+                <div class="form-group" style="display: block;">
+                    <div class="input-wrapper">
+                        <label for="admin-username">
+                            <span class="label-icon">👤</span>
+                            帳號
+                        </label>
+                        <input type="text" id="admin-username" placeholder="請輸入管理者帳號" required>
+                    </div>
+
+                    <div class="input-wrapper">
+                        <label for="admin-password">
+                            <span class="label-icon">🔒</span>
+                            密碼
+                        </label>
+                        <input type="password" id="admin-password" placeholder="請輸入密碼" required>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="admin-login-btn">
+                    <span class="btn-icon">🔐</span>
+                    登入管理後台
+                </button>
+            </div>
+
+            <!-- 註冊頁面 -->
+            <div class="tab-content" id="register-tab">
+                <div class="info-card">
+                    <div class="info-icon">✨</div>
+                    <h3>創建新帳戶</h3>
+                    <p>只需 3 個步驟，立即開始智慧購物體驗</p>
+                </div>
+
+                <div class="steps-indicator">
+                    <div class="step active" data-step="1">
+                        <div class="step-number">1</div>
+                        <div class="step-label">拍攝人臉</div>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-number">2</div>
+                        <div class="step-label">填寫資訊</div>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-number">3</div>
+                        <div class="step-label">完成註冊</div>
+                    </div>
+                </div>
+
+                <div class="face-detection-area">
+                    <video id="register-video" autoplay playsinline></video>
+                    <canvas id="register-canvas" style="display:none;"></canvas>
+                    <div class="face-overlay" id="register-overlay">
+                        <div class="face-frame"></div>
+                    </div>
+                    <div class="camera-status">
+                        <span class="status-indicator"></span>
+                        <span class="status-text" id="register-status">正在啟動鏡頭...</span>
+                    </div>
+                </div>
+
+                <div class="form-group" id="register-form" style="display:none;">
+                    <div class="input-wrapper">
+                        <label for="name">
+                            <span class="label-icon">👤</span>
+                            姓名
+                        </label>
+                        <input type="text" id="name" placeholder="請輸入您的姓名" required>
+                    </div>
+
+                    <div class="input-wrapper">
+                        <label for="phone">
+                            <span class="label-icon">📱</span>
+                            電話
+                        </label>
+                        <input type="tel" id="phone" placeholder="請輸入您的電話 (例如: 0912345678)" required>
+                    </div>
+
+                    <div class="input-wrapper">
+                        <label for="birthday">
+                            <span class="label-icon">🎂</span>
+                            生日
+                        </label>
+                        <input type="date" id="birthday" required>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="capture-face-btn" disabled>
+                    <span class="btn-icon">📸</span>
+                    拍攝人臉照片
+                </button>
+
+                <button class="btn btn-success" id="register-btn" style="display:none;">
+                    <span class="btn-icon">✅</span>
+                    完成註冊
+                </button>
+            </div>
+        </div>
+
+        <!-- 載入中遮罩 -->
+        <div class="loading-overlay" id="loading-overlay" style="display:none;">
+            <div class="spinner"></div>
+            <p id="loading-message">處理中...</p>
+        </div>
+    </div>
+
+    <script src="/static/js/login.js"></script>
+</body>
+</html>

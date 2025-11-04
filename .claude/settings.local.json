@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(mongod:*)",
+      "Bash(brew services:*)",
+      "Bash(pgrep:*)",
+      "Bash(sudo rm:*)",
+      "Bash(python:*)",
+      "Bash(timeout 5 python:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(xargs kill:*)",
+      "Bash(pkill:*)",
+      "Bash(mongosh:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
