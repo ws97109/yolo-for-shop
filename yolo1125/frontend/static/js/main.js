@@ -118,7 +118,7 @@ class App {
     handleUserInfo(data) {
         console.log('收到使用者資訊:', data);
         this.currentUser = data.user;
-        this.updateUserPanel(data.user);
+        this.updateUserDisplay(data.user);
 
         if (data.is_new_user) {
             this.showToast(`歡迎新用戶: ${data.user.name}`, 'success');
@@ -181,7 +181,6 @@ class App {
 
         // 更新使用者顯示區域
         this.updateUserDisplay(data.user);
-        this.updateUserPanel(data.user);
 
         // 啟用結帳按鈕
         const checkoutBtn = document.getElementById('checkout-btn');
@@ -288,33 +287,6 @@ class App {
     handleError(data) {
         console.error('收到錯誤:', data);
         this.showToast(data.message || '發生錯誤', 'error');
-    }
-
-    /**
-     * 更新使用者面板
-     */
-    updateUserPanel(user) {
-        const userInfo = document.getElementById('user-info');
-        if (!userInfo) return;
-
-        if (user) {
-            userInfo.innerHTML = `
-                <div class="user-avatar">
-                    <div class="avatar-placeholder">${user.name.charAt(0)}</div>
-                </div>
-                <div class="user-details">
-                    <div class="user-name">${this.escapeHtml(user.name)}</div>
-                    <div class="user-phone">${this.escapeHtml(user.phone)}</div>
-                    <div class="user-registered">註冊時間: ${user.created_at ? new Date(user.created_at).toLocaleDateString() : '不明'}</div>
-                </div>
-            `;
-        } else {
-            userInfo.innerHTML = `
-                <div class="user-placeholder">
-                    <p>請面向鏡頭進行人臉辨識</p>
-                </div>
-            `;
-        }
     }
 
     /**
@@ -547,13 +519,25 @@ class App {
 
             // 獲取並顯示詳細資訊
             try {
+                console.log('🔍 正在載入使用者詳細資訊...', user.id);
+
                 const [userInfoRes, transactionsRes] = await Promise.all([
                     fetch(`/api/user/${user.id}/info`),
                     fetch(`/api/user/${user.id}/transactions`)
                 ]);
 
+                console.log('📡 API 回應狀態:', {
+                    userInfo: userInfoRes.status,
+                    transactions: transactionsRes.status
+                });
+
                 const userInfo = await userInfoRes.json();
                 const transactions = await transactionsRes.json();
+
+                console.log('📦 API 資料:', {
+                    userInfo: userInfo,
+                    transactions: transactions
+                });
 
                 // 顯示生日
                 if (userInfo.success && userInfo.user.birthday) {
@@ -565,7 +549,20 @@ class App {
 
                 // 顯示累積消費
                 if (transactions.success) {
-                    totalSpentAmount.textContent = `NT$ ${transactions.total_spent}`;
+                    const totalSpent = transactions.total_spent || 0;
+                    totalSpentAmount.textContent = `NT$ ${totalSpent.toLocaleString()}`;
+                    console.log('💰 累積消費:', totalSpent, '元');
+                    console.log('📊 交易記錄數量:', transactions.transactions ? transactions.transactions.length : 0);
+
+                    // 顯示最近購買
+                    if (transactions.transactions && transactions.transactions.length > 0) {
+                        this.displayRecentPurchase(transactions.transactions);
+                    } else {
+                        console.log('⚠️ 沒有交易記錄');
+                    }
+                } else {
+                    totalSpentAmount.textContent = 'NT$ 0';
+                    console.log('⚠️ 累積消費 API 失敗:', transactions);
                 }
 
                 // 計算帳號年齡
@@ -574,9 +571,16 @@ class App {
                     const now = new Date();
                     const diffDays = Math.floor((now - createdAt) / (1000 * 60 * 60 * 24));
                     accountAge.textContent = `${diffDays} 天`;
+                    console.log('📅 會員天數:', diffDays, '天 (註冊日期:', createdAt.toLocaleDateString(), ')');
+                } else {
+                    accountAge.textContent = '0 天';
+                    console.log('⚠️ 無法取得註冊日期');
                 }
             } catch (error) {
-                console.error('載入使用者詳細資訊失敗:', error);
+                console.error('❌ 載入使用者詳細資訊失敗:', error);
+                // 設置預設值
+                totalSpentAmount.textContent = 'NT$ 0';
+                accountAge.textContent = '0 天';
             }
 
             placeholder.style.display = 'none';
@@ -586,6 +590,40 @@ class App {
             placeholder.style.display = 'block';
             details.style.display = 'none';
         }
+    }
+
+    /**
+     * 顯示最近購買的商品
+     */
+    displayRecentPurchase(transactions) {
+        const recentPurchaseDiv = document.getElementById('recent-purchase');
+        const recentPurchaseItems = document.getElementById('recent-purchase-items');
+
+        if (!transactions || transactions.length === 0) {
+            recentPurchaseDiv.style.display = 'none';
+            return;
+        }
+
+        // 取得最近一筆交易
+        const latestTransaction = transactions[0];
+
+        if (!latestTransaction || !latestTransaction.items || latestTransaction.items.length === 0) {
+            recentPurchaseDiv.style.display = 'none';
+            return;
+        }
+
+        // 顯示最近購買的商品
+        const itemsHtml = latestTransaction.items.map(item =>
+            `<div class="recent-item">
+                <span class="recent-item-name">${item.product_name}</span>
+                <span class="recent-item-quantity">x${item.quantity}</span>
+            </div>`
+        ).join('');
+
+        recentPurchaseItems.innerHTML = itemsHtml;
+        recentPurchaseDiv.style.display = 'block';
+
+        console.log('🛍️ 最近購買:', latestTransaction.items);
     }
 
     /**

@@ -962,6 +962,58 @@ async def get_admin_stats():
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@app.get("/api/admin/user/{user_id}/transactions")
+async def get_user_transactions(user_id: str):
+    """
+    獲取特定使用者的交易記錄
+    """
+    try:
+        from bson import ObjectId
+        db = Database.get_db()
+
+        # 驗證使用者存在
+        user = db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            raise HTTPException(status_code=404, detail="使用者不存在")
+
+        # 查詢交易記錄，按時間倒序排列
+        transactions = list(db.transactions.find(
+            {"user_id": ObjectId(user_id)}
+        ).sort("created_at", -1))
+
+        # 計算統計資料
+        total_amount = sum(t.get('total_amount', 0) for t in transactions)
+        total_count = len(transactions)
+        total_items = sum(t.get('total_quantity', 0) for t in transactions)
+
+        # 格式化交易記錄
+        formatted_transactions = []
+        for t in transactions:
+            formatted_transactions.append({
+                "id": str(t['_id']),
+                "created_at": t['created_at'].isoformat(),
+                "items": t.get('items', []),
+                "total_quantity": t.get('total_quantity', 0),
+                "total_amount": t.get('total_amount', 0)
+            })
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "transactions": formatted_transactions,
+                "summary": {
+                    "total_amount": total_amount,
+                    "total_count": total_count,
+                    "total_items": total_items
+                }
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ 獲取交易記錄錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
 @app.put("/api/admin/user/{user_id}")
 async def update_user(user_id: str, data: dict):
     """

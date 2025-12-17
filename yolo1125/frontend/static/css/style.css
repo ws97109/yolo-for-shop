@@ -254,6 +254,53 @@ header {
     gap: 10px;
 }
 
+/* 最近購買區域 */
+.recent-purchase {
+    margin-top: 15px;
+    padding: 12px;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+    border-radius: 10px;
+    border-left: 4px solid #ff6b6b;
+}
+
+.recent-purchase-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #d63031;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.recent-purchase-items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.recent-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    background: white;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.recent-item-name {
+    font-weight: 500;
+    color: #2d3436;
+}
+
+.recent-item-quantity {
+    font-weight: 600;
+    color: #e17055;
+    background: #fff5f5;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
 /* ==================== 鏡頭面板 ==================== */
 .camera-panel {
     background: var(--card-background);

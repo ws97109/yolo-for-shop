@@ -7,6 +7,7 @@ class AdminManager {
         this.users = [];
         this.currentEditUser = null;
         this.currentDeleteUser = null;
+        this.currentTransactionsUser = null;
         this.init();
     }
 
@@ -48,6 +49,14 @@ class AdminManager {
         });
         document.getElementById('confirm-delete-btn').addEventListener('click', () => {
             this.confirmDelete();
+        });
+
+        // 消費記錄 Modal
+        document.getElementById('close-transactions-modal').addEventListener('click', () => {
+            this.closeTransactionsModal();
+        });
+        document.getElementById('close-transactions-btn').addEventListener('click', () => {
+            this.closeTransactionsModal();
         });
     }
 
@@ -110,6 +119,9 @@ class AdminManager {
                 <td>${user.last_visit ? this.formatDate(user.last_visit) : '--'}</td>
                 <td class="amount">NT$ ${user.total_spent.toLocaleString()}</td>
                 <td class="actions">
+                    <button class="btn-view" onclick="adminManager.viewTransactions('${user.id}')">
+                        📊 消費記錄
+                    </button>
                     <button class="btn-edit" onclick="adminManager.editUser('${user.id}')">
                         ✏️ 編輯
                     </button>
@@ -236,6 +248,84 @@ class AdminManager {
             console.error('刪除使用者失敗:', error);
             this.showToast('刪除失敗，請重試', 'error');
         }
+    }
+
+    async viewTransactions(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) return;
+
+        this.currentTransactionsUser = user;
+
+        // 設置標題
+        document.getElementById('transactions-user-name').textContent = user.name;
+
+        // 顯示 Modal
+        document.getElementById('transactions-modal').style.display = 'flex';
+
+        // 載入交易記錄
+        await this.loadTransactions(userId);
+    }
+
+    closeTransactionsModal() {
+        document.getElementById('transactions-modal').style.display = 'none';
+        this.currentTransactionsUser = null;
+    }
+
+    async loadTransactions(userId) {
+        const listContainer = document.getElementById('transactions-list');
+        listContainer.innerHTML = '<div class="loading-message"><div class="spinner"></div><p>載入中...</p></div>';
+
+        try {
+            const response = await fetch(`/api/admin/user/${userId}/transactions`);
+            const data = await response.json();
+
+            if (data.success) {
+                this.renderTransactions(data.transactions, data.summary);
+            } else {
+                listContainer.innerHTML = '<div class="error-message">載入失敗</div>';
+                this.showToast('載入消費記錄失敗', 'error');
+            }
+        } catch (error) {
+            console.error('載入消費記錄失敗:', error);
+            listContainer.innerHTML = '<div class="error-message">載入失敗，請重試</div>';
+            this.showToast('載入消費記錄失敗', 'error');
+        }
+    }
+
+    renderTransactions(transactions, summary) {
+        // 更新摘要
+        document.getElementById('transactions-total-amount').textContent = `NT$ ${summary.total_amount.toLocaleString()}`;
+        document.getElementById('transactions-total-count').textContent = `${summary.total_count} 次`;
+        document.getElementById('transactions-total-items').textContent = `${summary.total_items} 件`;
+
+        const listContainer = document.getElementById('transactions-list');
+
+        if (transactions.length === 0) {
+            listContainer.innerHTML = '<div class="empty-message">尚無消費記錄</div>';
+            return;
+        }
+
+        listContainer.innerHTML = transactions.map(transaction => `
+            <div class="transaction-card">
+                <div class="transaction-header">
+                    <div class="transaction-date">${this.formatDate(transaction.created_at)}</div>
+                    <div class="transaction-amount">NT$ ${transaction.total_amount.toLocaleString()}</div>
+                </div>
+                <div class="transaction-items">
+                    ${transaction.items.map(item => `
+                        <div class="transaction-item">
+                            <span class="item-name">${this.escapeHtml(item.product_name)}</span>
+                            <span class="item-quantity">x${item.quantity}</span>
+                            <span class="item-price">NT$ ${item.subtotal.toLocaleString()}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="transaction-footer">
+                    <span>共 ${transaction.total_quantity} 件商品</span>
+                    <span class="transaction-id">訂單編號: ${transaction.id.slice(-8)}</span>
+                </div>
+            </div>
+        `).join('');
     }
 
     formatDate(dateString, type = 'datetime') {

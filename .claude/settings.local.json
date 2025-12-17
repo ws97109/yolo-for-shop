@@ -15,7 +15,8 @@
       "Bash(kill:*)",
       "Bash(xargs kill:*)",
       "Bash(pkill:*)",
-      "Bash(mongosh:*)"
+      "Bash(mongosh:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

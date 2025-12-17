@@ -140,6 +140,41 @@
         </div>
     </div>
 
+    <!-- 消費記錄 Modal -->
+    <div id="transactions-modal" class="modal" style="display:none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2>消費記錄 - <span id="transactions-user-name"></span></h2>
+                <button class="close-btn" id="close-transactions-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="transactions-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">總消費金額：</span>
+                        <span class="summary-value" id="transactions-total-amount">NT$ 0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">總交易次數：</span>
+                        <span class="summary-value" id="transactions-total-count">0 次</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">總購買商品：</span>
+                        <span class="summary-value" id="transactions-total-items">0 件</span>
+                    </div>
+                </div>
+                <div class="transactions-list" id="transactions-list">
+                    <div class="loading-message">
+                        <div class="spinner"></div>
+                        <p>載入中...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="close-transactions-btn">關閉</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast 通知 -->
     <div id="toast-container"></div>
 

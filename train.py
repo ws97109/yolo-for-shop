@@ -14,9 +14,8 @@ class SupermarketModelTrainer:
 
         # 定義商品類別
         self.product_classes = {
-            0: "原翠",
-            1: "分解茶",
-
+            0: "巧克力麵包",
+            1: "分解茶"
         }
 
     def create_dataset_yaml(self, data_path, output_path=None):
