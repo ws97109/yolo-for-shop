@@ -1,11 +1,11 @@
 # 超市商品辨識資料集配置
-path: /Users/lishengfeng/Desktop/yolo/dataset
+path: /Users/lishengfeng/Desktop/學習歷程/python yolo/yolo/dataset
 train: images/train
 val: images/val
 test: images/test
 
 # 類別數量
-nc: 3
+nc: 4
 
 # 類別名稱
-names: ['原翠', '分解茶','巧克力麵包']
+names: ['巧克力麵包', '原萃綠茶', '分解茶', '泡沫綠茶']

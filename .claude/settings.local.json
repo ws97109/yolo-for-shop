@@ -16,7 +16,15 @@
       "Bash(xargs kill:*)",
       "Bash(pkill:*)",
       "Bash(mongosh:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(cat:*)",
+      "Bash(for file in dataset/labels/train/tea*.txt)",
+      "Bash(do sed -i '' 's/^1 /2 /' \"$file\")",
+      "Bash(done)",
+      "Bash(if [ -d dataset/labels/valid ])",
+      "Bash(then for file in dataset/labels/valid/tea*.txt)",
+      "Bash(else echo \"No valid set tea files found\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []

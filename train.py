@@ -15,7 +15,9 @@ class SupermarketModelTrainer:
         # 定義商品類別
         self.product_classes = {
             0: "巧克力麵包",
-            1: "分解茶"
+            1: "原萃綠茶",
+            2: "分解茶",
+            3: "泡沫綠茶"
         }
 
     def create_dataset_yaml(self, data_path, output_path=None):
@@ -174,7 +176,8 @@ def main():
     """
     parser = argparse.ArgumentParser(description='超市商品辨識模型訓練程式')
 
-    parser.add_argument('--data', type=str, required=True,
+    parser.add_argument('--data', type=str,
+                       default='/Users/lishengfeng/Desktop/學習歷程/python yolo/yolo/dataset',
                        help='資料集根目錄路徑')
     parser.add_argument('--epochs', type=int, default=100,
                        help='訓練輪數 (預設: 100)')
@@ -262,7 +265,10 @@ if __name__ == "__main__":
         trainer = SupermarketModelTrainer()
 
         # 取得資料集路徑
-        data_path = input("請輸入資料集根目錄路徑: ").strip()
+        default_data_path = '/Users/lishengfeng/Desktop/學習歷程/python yolo/yolo/dataset'
+        data_path_input = input(f"請輸入資料集根目錄路徑 (預設: {default_data_path}): ").strip()
+        data_path = data_path_input if data_path_input else default_data_path
+
         if not os.path.exists(data_path):
             print(f"❌ 路徑不存在: {data_path}")
             exit(1)

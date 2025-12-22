@@ -1,7 +1,7 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: dataset/dataset.yaml
+data: /Users/lishengfeng/Desktop/學習歷程/python yolo/yolo/dataset/dataset.yaml
 epochs: 100
 time: null
 patience: 50
@@ -103,4 +103,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /Users/lishengfeng/Desktop/yolo/runs/detect/supermarket_product_detector
+save_dir: /Users/lishengfeng/Desktop/學習歷程/python yolo/yolo/runs/detect/supermarket_product_detector
