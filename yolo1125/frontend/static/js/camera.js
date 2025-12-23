@@ -154,8 +154,9 @@ class CameraManager {
     /**
      * 繪製多個偵測框
      * @param {Array} detections - 偵測結果陣列
+     * @param {string} color - 框框顏色（預設綠色）
      */
-    drawDetections(detections) {
+    drawDetections(detections, color = '#00ff00') {
         // 先清除舊的偵測框
         this.clearCanvas();
 
@@ -168,10 +169,10 @@ class CameraManager {
             let label = detection.class_name || '未知';
             if (detection.product) {
                 const confidence = (detection.confidence * 100).toFixed(0);
-                label = `${detection.product.name} (${confidence}%)`;
+                label = `${detection.product.name} NT$${detection.product.price} (${confidence}%)`;
             }
 
-            this.drawBox(x1, y1, width, height, label, '#00ff00');
+            this.drawBox(x1, y1, width, height, label, color);
         });
     }
 

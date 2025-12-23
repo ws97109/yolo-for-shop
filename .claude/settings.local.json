@@ -25,7 +25,9 @@
       "Bash(then for file in dataset/labels/valid/tea*.txt)",
       "Bash(else echo \"No valid set tea files found\")",
       "Bash(fi)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(wc:*)",
+      "Bash(git checkout yolo1125/backend/main.py yolo1125/frontend/index.html yolo1125/frontend/static/js/camera.js yolo1125/frontend/static/js/main.js)"
     ],
     "deny": [],
     "ask": []

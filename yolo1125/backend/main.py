@@ -435,7 +435,7 @@ async def handle_frame(session_id: str, data: dict):
 
         session = manager.get_session(session_id)
 
-        # Task 005: 人臉識別（僅在未登入時執行）
+        # 人臉識別（僅在未登入時執行）
         if not session.get('user_id'):
             current_time = datetime.utcnow().timestamp()
             last_time = last_face_detection_time.get(session_id, 0)
@@ -444,16 +444,22 @@ async def handle_frame(session_id: str, data: dict):
                 last_face_detection_time[session_id] = current_time
                 await handle_face_detection(session_id, frame)
 
-        # YOLO 商品偵測與自動加入購物車（僅在已登入時執行）
-        elif session.get('user_id'):
+        # YOLO 商品偵測（已登入時執行）
+        if session.get('user_id'):
             yolo_service = get_yolo_service()
             detections = yolo_service.detect(frame)
 
-            if detections:
-                # 過濾出有商品資訊的偵測結果
-                valid_detections = [d for d in detections if d.get('product')]
+            # 過濾出有商品資訊的偵測結果
+            valid_detections = [d for d in detections if d.get('product')]
 
-                # 自動加入購物車
+            # 發送偵測結果到前端（用於繪製紅色框框）
+            await manager.send_message(session_id, {
+                "type": "detection_preview",
+                "detections": valid_detections
+            })
+
+            # 自動加入購物車（3 秒間隔防重複）
+            if valid_detections:
                 for detection in valid_detections:
                     product = detection['product']
                     await handle_product_detected(session_id, product, detection)

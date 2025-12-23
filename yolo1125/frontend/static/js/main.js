@@ -78,6 +78,7 @@ class App {
         this.ws.on('product_added', this.handleProductAdded.bind(this));
         this.ws.on('product_detected', this.handleProductDetected.bind(this));
         this.ws.on('detection_result', this.handleDetectionResult.bind(this));
+        this.ws.on('detection_preview', this.handleDetectionPreview.bind(this));
         this.ws.on('products_added', this.handleProductsAdded.bind(this));
         this.ws.on('error', this.handleError.bind(this));
     }
@@ -164,6 +165,18 @@ class App {
     }
 
     /**
+     * 處理即時偵測預覽（繪製紅色框框）
+     */
+    handleDetectionPreview(data) {
+        const detections = data.detections || [];
+
+        if (this.camera && detections.length > 0) {
+            // 繪製紅色偵測框
+            this.camera.drawDetections(detections, '#ff0000');
+        }
+    }
+
+    /**
      * 處理使用者登入
      */
     handleUserLogin(data) {
@@ -172,12 +185,6 @@ class App {
 
         // 更新使用者顯示區域
         this.updateUserDisplay(data.user);
-
-        // 啟用辨識按鈕
-        const detectBtn = document.getElementById('detect-btn');
-        if (detectBtn) {
-            detectBtn.disabled = false;
-        }
 
         // 啟用結帳按鈕
         const checkoutBtn = document.getElementById('checkout-btn');
@@ -293,11 +300,6 @@ class App {
      * 處理手動辨識按鈕點擊
      */
     async handleManualDetection() {
-        if (!this.currentUser) {
-            this.showToast('請先進行人臉辨識登入', 'error');
-            return;
-        }
-
         if (!this.camera || !this.ws || !this.ws.connected) {
             this.showToast('系統未就緒，請稍後再試', 'error');
             return;
@@ -432,7 +434,7 @@ class App {
             detectionStatus.className = 'detection-status';
         }
 
-        if (detectBtn && this.currentUser) {
+        if (detectBtn) {
             detectBtn.disabled = false;
         }
 
