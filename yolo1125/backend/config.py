@@ -10,7 +10,7 @@ DB_NAME = "yolo1125"
 
 # YOLO 模型設定
 YOLO_MODEL_PATH = BASE_DIR.parent / "runs" / "detect" / "supermarket_product_detector" / "weights" / "best.pt"
-CONFIDENCE_THRESHOLD = 0.5  # 降低閾值以提高辨識成功率
+CONFIDENCE_THRESHOLD = 0.8  # 提高閾值以提高辨識準確度
 
 # 人臉圖片儲存
 FACE_IMAGES_DIR = BASE_DIR / "data" / "faces"
