@@ -76,8 +76,9 @@ class App {
         this.ws.on('cart_update', this.handleCartUpdate.bind(this));
         this.ws.on('cart_updated', this.handleCartUpdated.bind(this));
         this.ws.on('product_added', this.handleProductAdded.bind(this));
-        this.ws.on('detections', this.handleDetections.bind(this));
         this.ws.on('product_detected', this.handleProductDetected.bind(this));
+        this.ws.on('detection_result', this.handleDetectionResult.bind(this));
+        this.ws.on('products_added', this.handleProductsAdded.bind(this));
         this.ws.on('error', this.handleError.bind(this));
     }
 
@@ -140,16 +141,6 @@ class App {
     }
 
     /**
-     * 處理 YOLO 偵測結果
-     */
-    handleDetections(data) {
-        if (data.detections && data.detections.length > 0) {
-            // 使用 CameraManager 的 drawDetections 方法
-            this.camera.drawDetections(data.detections);
-        }
-    }
-
-    /**
      * 處理購物車更新
      */
     handleCartUpdated(data) {
@@ -181,6 +172,12 @@ class App {
 
         // 更新使用者顯示區域
         this.updateUserDisplay(data.user);
+
+        // 啟用辨識按鈕
+        const detectBtn = document.getElementById('detect-btn');
+        if (detectBtn) {
+            detectBtn.disabled = false;
+        }
 
         // 啟用結帳按鈕
         const checkoutBtn = document.getElementById('checkout-btn');
@@ -287,12 +284,174 @@ class App {
     handleError(data) {
         console.error('收到錯誤:', data);
         this.showToast(data.message || '發生錯誤', 'error');
+
+        // 重置辨識狀態
+        this.resetDetectionUI();
+    }
+
+    /**
+     * 處理手動辨識按鈕點擊
+     */
+    async handleManualDetection() {
+        if (!this.currentUser) {
+            this.showToast('請先進行人臉辨識登入', 'error');
+            return;
+        }
+
+        if (!this.camera || !this.ws || !this.ws.connected) {
+            this.showToast('系統未就緒，請稍後再試', 'error');
+            return;
+        }
+
+        try {
+            console.log('🔍 開始手動辨識...');
+
+            // 更新 UI 狀態
+            this.setDetectionUI('detecting', '辨識中...');
+
+            // 擷取當前幀
+            const frame = this.camera.captureFrame();
+            if (!frame) {
+                throw new Error('無法擷取影像');
+            }
+
+            // 發送辨識請求
+            this.ws.send({
+                type: 'detect_products',
+                frame: frame,
+                timestamp: new Date().toISOString()
+            });
+
+        } catch (error) {
+            console.error('❌ 辨識失敗:', error);
+            this.showToast('辨識失敗，請重試', 'error');
+            this.resetDetectionUI();
+        }
+    }
+
+    /**
+     * 處理辨識結果
+     */
+    handleDetectionResult(data) {
+        console.log('📦 收到辨識結果:', data);
+
+        const detections = data.detections || [];
+
+        if (detections.length === 0) {
+            this.setDetectionUI('error', data.message || '未辨識到商品');
+            setTimeout(() => this.resetDetectionUI(), 2000);
+            return;
+        }
+
+        // 顯示成功狀態
+        this.setDetectionUI('success', `偵測到 ${detections.length} 項商品`);
+
+        // 在畫面上繪製辨識框
+        if (this.camera) {
+            this.camera.drawDetections(detections);
+        }
+
+        // 顯示確認對話框
+        setTimeout(() => {
+            this.showDetectionConfirmation(detections);
+        }, 500);
+    }
+
+    /**
+     * 顯示辨識確認對話框
+     */
+    showDetectionConfirmation(detections) {
+        const products = detections.map(d => d.product).filter(p => p);
+
+        if (products.length === 0) {
+            this.showToast('沒有可加入的商品', 'error');
+            this.resetDetectionUI();
+            return;
+        }
+
+        const productList = products.map(p => `• ${p.name} - NT$ ${p.price}`).join('\n');
+        const confirmed = confirm(`偵測到以下商品，是否加入購物車？\n\n${productList}`);
+
+        if (confirmed) {
+            // 發送加入購物車請求
+            this.ws.send({
+                type: 'add_detected_products',
+                products: products
+            });
+        } else {
+            this.showToast('已取消加入', 'info');
+            this.resetDetectionUI();
+        }
+    }
+
+    /**
+     * 處理商品加入成功
+     */
+    handleProductsAdded(data) {
+        console.log('✅ 商品已加入:', data);
+        this.showToast(data.message || '商品已加入購物車', 'success');
+        this.resetDetectionUI();
+    }
+
+    /**
+     * 設置辨識 UI 狀態
+     */
+    setDetectionUI(state, message) {
+        const detectionBox = document.getElementById('detection-box');
+        const detectionStatus = document.getElementById('detection-status');
+        const detectBtn = document.getElementById('detect-btn');
+
+        if (detectionBox) {
+            detectionBox.className = 'guide-box ' + state;
+        }
+
+        if (detectionStatus) {
+            detectionStatus.textContent = message;
+            detectionStatus.className = 'detection-status ' + state;
+        }
+
+        if (detectBtn) {
+            detectBtn.disabled = (state === 'detecting');
+        }
+    }
+
+    /**
+     * 重置辨識 UI 狀態
+     */
+    resetDetectionUI() {
+        const detectionBox = document.getElementById('detection-box');
+        const detectionStatus = document.getElementById('detection-status');
+        const detectBtn = document.getElementById('detect-btn');
+
+        if (detectionBox) {
+            detectionBox.className = 'guide-box';
+        }
+
+        if (detectionStatus) {
+            detectionStatus.textContent = '';
+            detectionStatus.className = 'detection-status';
+        }
+
+        if (detectBtn && this.currentUser) {
+            detectBtn.disabled = false;
+        }
+
+        // 清除繪製的辨識框
+        if (this.camera) {
+            this.camera.clearCanvas();
+        }
     }
 
     /**
      * 設置 UI 事件監聽
      */
     setupUIEvents() {
+        // 辨識按鈕
+        const detectBtn = document.getElementById('detect-btn');
+        if (detectBtn) {
+            detectBtn.addEventListener('click', () => this.handleManualDetection());
+        }
+
         // 結帳按鈕
         const checkoutBtn = document.getElementById('checkout-btn');
         if (checkoutBtn) {

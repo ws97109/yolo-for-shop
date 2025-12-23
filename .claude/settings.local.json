@@ -24,7 +24,8 @@
       "Bash(if [ -d dataset/labels/valid ])",
       "Bash(then for file in dataset/labels/valid/tea*.txt)",
       "Bash(else echo \"No valid set tea files found\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Bash(cd:*)"
     ],
     "deny": [],
     "ask": []

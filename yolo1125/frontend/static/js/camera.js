@@ -6,6 +6,12 @@ class CameraManager {
     constructor(videoId, canvasId) {
         this.video = document.getElementById(videoId);
         this.canvas = document.getElementById(canvasId);
+
+        if (!this.canvas) {
+            console.error(`Canvas element with ID '${canvasId}' not found`);
+            return;
+        }
+
         this.ctx = this.canvas.getContext('2d');
         this.stream = null;
         this.isRunning = false;
@@ -207,6 +213,3 @@ class CameraManager {
         }
     }
 }
-
-// 全域實例
-const cameraManager = new CameraManager('video', 'canvas');

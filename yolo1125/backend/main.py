@@ -48,11 +48,15 @@ class ConnectionManager:
         """接受新的 WebSocket 連線"""
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        self.sessions[session_id] = {
-            "user_id": None,
-            "cart": [],
-            "connected_at": datetime.utcnow()
-        }
+
+        # 如果該 session 已存在（從登入頁跳轉過來），保留現有資料
+        if session_id not in self.sessions:
+            self.sessions[session_id] = {
+                "user_id": None,
+                "cart": [],
+                "connected_at": datetime.utcnow()
+            }
+
         print(f"✅ WebSocket 連線: {session_id}")
 
     def disconnect(self, session_id: str):
@@ -82,6 +86,7 @@ manager = ConnectionManager()
 # 記錄最後處理時間（避免過度處理）
 last_frame_time: Dict[str, float] = {}
 last_face_detection_time: Dict[str, float] = {}
+last_product_added: Dict[str, Dict[str, float]] = {}  # session_id: {product_id: timestamp}
 
 # ==================== 應用程式生命週期 ====================
 
@@ -343,6 +348,20 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     """WebSocket 端點處理即時通訊"""
     await manager.connect(websocket, session_id)
 
+    # 檢查該 session 是否已經有登入的使用者
+    session = manager.get_session(session_id)
+    if session and session.get('user_id'):
+        # 發送使用者資訊給前端
+        face_service = get_face_service()
+        user = face_service.get_user_by_id(session['user_id'])
+        if user:
+            await manager.send_message(session_id, {
+                "type": "user_login",
+                "user": user,
+                "is_new": False
+            })
+            print(f"✅ 自動發送使用者資訊: {user['name']}")
+
     try:
         while True:
             # 接收訊息
@@ -361,8 +380,16 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 })
 
             elif message_type == "cart_remove":
-                # 移除購物車商品（Task 006 會實作）
+                # 移除購物車商品
                 await handle_cart_remove(session_id, data)
+
+            elif message_type == "detect_products":
+                # 手動觸發商品辨識
+                await handle_manual_detection(session_id, data)
+
+            elif message_type == "add_detected_products":
+                # 確認加入辨識到的商品
+                await handle_add_detected_products(session_id, data)
 
             else:
                 print(f"⚠️ 未知訊息類型: {message_type}")
@@ -417,24 +444,19 @@ async def handle_frame(session_id: str, data: dict):
                 last_face_detection_time[session_id] = current_time
                 await handle_face_detection(session_id, frame)
 
-        # Task 004: YOLO 商品偵測（僅在已登入時執行）
+        # YOLO 商品偵測與自動加入購物車（僅在已登入時執行）
         elif session.get('user_id'):
             yolo_service = get_yolo_service()
             detections = yolo_service.detect(frame)
 
             if detections:
-                # 發送偵測結果至前端
-                await manager.send_message(session_id, {
-                    "type": "detections",
-                    "detections": detections,
-                    "timestamp": datetime.utcnow().isoformat()
-                })
+                # 過濾出有商品資訊的偵測結果
+                valid_detections = [d for d in detections if d.get('product')]
 
-                # 如果偵測到商品，發送商品偵測事件
-                for detection in detections:
-                    product = detection.get('product')
-                    if product:
-                        await handle_product_detected(session_id, product, detection)
+                # 自動加入購物車
+                for detection in valid_detections:
+                    product = detection['product']
+                    await handle_product_detected(session_id, product, detection)
 
     except Exception as e:
         print(f"❌ 處理影格錯誤: {e}")
@@ -501,13 +523,28 @@ async def handle_face_detection(session_id: str, frame: np.ndarray):
         traceback.print_exc()
 
 async def handle_product_detected(session_id: str, product: dict, detection: dict):
-    """處理偵測到的商品"""
+    """處理偵測到的商品（帶防重複機制）"""
     try:
         session = manager.get_session(session_id)
 
         if not session or not session.get('user_id'):
             # 使用者未登入，不加入購物車
             return
+
+        # 防重複機制：同一個商品在 3 秒內不會重複加入
+        product_id = product['id']
+        current_time = datetime.utcnow().timestamp()
+
+        if session_id not in last_product_added:
+            last_product_added[session_id] = {}
+
+        last_added_time = last_product_added[session_id].get(product_id, 0)
+
+        if current_time - last_added_time < 3.0:  # 3 秒防重複
+            return
+
+        # 更新最後加入時間
+        last_product_added[session_id][product_id] = current_time
 
         # Task 006: 加入購物車
         cart_service = get_cart_service()
@@ -540,7 +577,7 @@ async def handle_cart_remove(session_id: str, data: dict):
             print("⚠️ 缺少商品索引")
             return
 
-        # Task 006: 移除購物車商品
+        # 移除購物車商品
         cart_service = get_cart_service()
         cart_summary = cart_service.remove_item(session_id, item_index)
 
@@ -552,6 +589,117 @@ async def handle_cart_remove(session_id: str, data: dict):
 
     except Exception as e:
         print(f"❌ 處理移除請求錯誤: {e}")
+
+async def handle_manual_detection(session_id: str, data: dict):
+    """處理手動辨識請求 - 不需要登入也可以辨識商品"""
+    try:
+        # 獲取當前幀的 Base64 圖像
+        frame_data = data.get("frame")
+        if not frame_data:
+            await manager.send_message(session_id, {
+                "type": "error",
+                "message": "無法獲取影像"
+            })
+            return
+
+        # 移除 data:image/jpeg;base64, 前綴
+        if "," in frame_data:
+            frame_data = frame_data.split(",")[1]
+
+        # Base64 解碼
+        image_bytes = base64.b64decode(frame_data)
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if frame is None:
+            await manager.send_message(session_id, {
+                "type": "error",
+                "message": "影像解碼失敗"
+            })
+            return
+
+        # 執行 YOLO 辨識
+        yolo_service = get_yolo_service()
+        detections = yolo_service.detect(frame)
+
+        # 過濾出有商品資訊的偵測結果
+        valid_detections = [d for d in detections if d.get('product')]
+
+        if not valid_detections:
+            await manager.send_message(session_id, {
+                "type": "detection_result",
+                "detections": [],
+                "message": "未偵測到商品"
+            })
+            print(f"⚠️ 手動辨識: 未偵測到商品")
+            return
+
+        # 發送辨識結果
+        await manager.send_message(session_id, {
+            "type": "detection_result",
+            "detections": valid_detections,
+            "message": f"偵測到 {len(valid_detections)} 項商品"
+        })
+
+        print(f"✅ 手動辨識: 偵測到 {len(valid_detections)} 項商品")
+
+    except Exception as e:
+        print(f"❌ 手動辨識錯誤: {e}")
+        import traceback
+        traceback.print_exc()
+        await manager.send_message(session_id, {
+            "type": "error",
+            "message": f"辨識失敗: {str(e)}"
+        })
+
+async def handle_add_detected_products(session_id: str, data: dict):
+    """處理確認加入辨識到的商品"""
+    try:
+        session = manager.get_session(session_id)
+
+        if not session or not session.get('user_id'):
+            await manager.send_message(session_id, {
+                "type": "error",
+                "message": "請先登入"
+            })
+            return
+
+        products = data.get("products", [])
+
+        if not products:
+            print("⚠️ 沒有商品需要加入")
+            return
+
+        # 加入購物車
+        cart_service = get_cart_service()
+
+        for product in products:
+            cart_summary = cart_service.add_item(session_id, product)
+
+        # 發送購物車更新
+        final_cart = cart_service.get_cart_summary(session_id)
+        await manager.send_message(session_id, {
+            "type": "cart_updated",
+            "cart": final_cart
+        })
+
+        # 發送成功訊息
+        await manager.send_message(session_id, {
+            "type": "products_added",
+            "count": len(products),
+            "message": f"已加入 {len(products)} 項商品"
+        })
+
+        print(f"✅ 已加入 {len(products)} 項商品到購物車")
+
+    except Exception as e:
+        print(f"❌ 加入商品錯誤: {e}")
+        import traceback
+        traceback.print_exc()
+        await manager.send_message(session_id, {
+            "type": "error",
+            "message": f"加入商品失敗: {str(e)}"
+        })
 
 # ==================== 錯誤處理 ====================
 
