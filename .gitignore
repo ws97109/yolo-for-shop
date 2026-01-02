@@ -1,0 +1,24 @@
+# Large Unity packages
+*.unitypackage
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# YOLO
+runs/
+weights/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
