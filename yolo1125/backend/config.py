@@ -10,7 +10,7 @@ DB_NAME = "yolo1125"
 
 # YOLO 模型設定
 YOLO_MODEL_PATH = BASE_DIR.parent / "runs" / "detect" / "supermarket_product_detector" / "weights" / "best.pt"
-CONFIDENCE_THRESHOLD = 0.5  # 提高閾值以減少誤判
+CONFIDENCE_THRESHOLD = 0.7  # 提高閾值以減少誤判
 
 # 人臉圖片儲存
 FACE_IMAGES_DIR = BASE_DIR / "data" / "faces"
@@ -24,3 +24,7 @@ WS_FRAME_RATE = 5  # 每秒處理 5 影格
 # 管理者帳號設定
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+# Ollama AI 設定
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")

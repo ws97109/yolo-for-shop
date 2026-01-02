@@ -132,6 +132,44 @@
                         <span id="total-amount">NT$ 0</span>
                     </div>
                 </div>
+
+                <!-- AI 商品助理聊天區塊 (ChatGPT Style) -->
+                <div class="ai-chat-section">
+                    <div class="ai-chat-header" id="ai-chat-toggle">
+                        <div class="ai-chat-title">
+                            <div class="ai-icon">✦</div>
+                            <span>AI 助理</span>
+                        </div>
+                        <div class="ai-status" id="ai-status">
+                            <span class="ai-status-dot"></span>
+                            <span class="ai-status-text">連線中...</span>
+                        </div>
+                        <button class="ai-toggle-btn" id="ai-toggle-btn">
+                            <span class="toggle-icon">▼</span>
+                        </button>
+                    </div>
+                    <div class="ai-chat-body" id="ai-chat-body">
+                        <div class="ai-chat-messages" id="ai-messages">
+                            <div class="ai-message ai-message-bot">
+                                <div class="message-avatar">✦</div>
+                                <div class="message-content">
+                                    <p>嗨！我是您的 AI 商品助理，有任何商品問題都可以問我。</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ai-chat-input">
+                            <input type="text" id="ai-input" placeholder="輸入訊息..." />
+                            <button id="ai-send-btn" class="ai-send-btn">
+                                <span>↑</span>
+                            </button>
+                        </div>
+                        <div class="ai-quick-questions">
+                            <button class="quick-btn" data-question="有哪些商品？">商品列表</button>
+                            <button class="quick-btn" data-question="推薦我一個商品">推薦</button>
+                            <button class="quick-btn" data-question="最便宜的是什麼？">最低價</button>
+                        </div>
+                    </div>
+                </div>
             </aside>
         </main>
 
@@ -193,6 +231,7 @@
     <script src="/static/js/camera.js"></script>
     <script src="/static/js/websocket.js"></script>
     <script src="/static/js/cart.js"></script>
+    <script src="/static/js/ai-chat.js"></script>
     <script src="/static/js/main.js"></script>
 </body>
 </html>

@@ -122,13 +122,10 @@ class Cart {
 
             if (response.ok && data.success) {
                 // 結帳成功
-                const message = `✅ 結帳成功！\n\n` +
-                    `交易編號：${data.transaction_id.substring(0, 12)}...\n` +
-                    `總金額：NT$ ${data.total_amount}\n\n` +
-                    `感謝您的購買！`;
-                alert(message);
                 console.log('✅ 結帳成功:', data);
-                // 購物車會透過 WebSocket cart_updated 訊息自動清空
+
+                // 顯示謝謝光臨訊息
+                this.showThankYouMessage(data.total_amount);
             } else {
                 // 結帳失敗
                 alert('❌ 結帳失敗：' + (data.detail || data.message || '未知錯誤'));
@@ -138,6 +135,87 @@ class Cart {
             console.error('❌ 結帳錯誤:', err);
             showToast('❌ 結帳失敗，請檢查網路連線');
         }
+    }
+
+    /**
+     * 顯示謝謝光臨訊息並跳轉回登入頁面
+     * @param {number} totalAmount - 結帳金額
+     */
+    showThankYouMessage(totalAmount) {
+        // 建立全螢幕遮罩
+        const overlay = document.createElement('div');
+        overlay.id = 'thank-you-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeIn 0.5s ease;
+        `;
+
+        overlay.innerHTML = `
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes bounceIn {
+                    0% { transform: scale(0.5); opacity: 0; }
+                    50% { transform: scale(1.1); }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                .thank-you-icon {
+                    font-size: 80px;
+                    animation: bounceIn 0.6s ease;
+                }
+                .thank-you-text {
+                    font-size: 48px;
+                    color: white;
+                    font-weight: bold;
+                    margin: 20px 0;
+                    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+                    animation: bounceIn 0.6s ease 0.2s both;
+                }
+                .thank-you-amount {
+                    font-size: 24px;
+                    color: rgba(255,255,255,0.9);
+                    margin-bottom: 30px;
+                    animation: bounceIn 0.6s ease 0.4s both;
+                }
+                .thank-you-redirect {
+                    font-size: 18px;
+                    color: rgba(255,255,255,0.7);
+                    animation: pulse 1.5s ease infinite;
+                }
+            </style>
+            <div class="thank-you-icon">🎉</div>
+            <div class="thank-you-text">謝謝光臨</div>
+            <div class="thank-you-amount">消費金額：NT$ ${totalAmount}</div>
+            <div class="thank-you-redirect">3 秒後自動返回...</div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // 3 秒後跳轉回登入頁面
+        setTimeout(function() {
+            // 關閉 WebSocket 連線
+            if (typeof wsClient !== 'undefined' && wsClient.ws) {
+                wsClient.ws.close();
+            }
+            // 強制跳轉
+            window.location.replace('/login.html');
+        }, 3000);
     }
 
     /**

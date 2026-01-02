@@ -129,6 +129,20 @@ class YOLOService:
         """根據 YOLO class_id 查詢商品"""
         return self.product_cache.get(class_id)
 
+    def refresh_products_cache(self):
+        """重新整理商品快取"""
+        print("🔄 重新整理商品快取...")
+        self.load_products()
+
+    def get_available_classes(self) -> List[Dict]:
+        """取得模型所有可用的類別"""
+        if self.model is None:
+            return []
+        return [
+            {"id": class_id, "name": class_name}
+            for class_id, class_name in self.model.names.items()
+        ]
+
 
 # 全域單例 - 延遲初始化以避免啟動時錯誤
 _yolo_service = None

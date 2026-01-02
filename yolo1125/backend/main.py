@@ -18,6 +18,8 @@ from backend.config import BASE_DIR
 from backend.services.yolo_service import get_yolo_service
 from backend.services.face_service import get_face_service
 from backend.services.cart_service import get_cart_service
+from backend.services.product_service import get_product_service
+from backend.services.ollama_service import get_ollama_service
 
 # 初始化 FastAPI
 app = FastAPI(
@@ -87,6 +89,8 @@ manager = ConnectionManager()
 last_frame_time: Dict[str, float] = {}
 last_face_detection_time: Dict[str, float] = {}
 last_product_added: Dict[str, Dict[str, float]] = {}  # session_id: {product_id: timestamp}
+product_scan_count: Dict[str, Dict[str, int]] = {}  # session_id: {product_id: 連續掃描次數}
+last_scanned_product: Dict[str, str] = {}  # session_id: 上一個掃描的 product_id
 
 # ==================== 應用程式生命週期 ====================
 
@@ -537,22 +541,43 @@ async def handle_product_detected(session_id: str, product: dict, detection: dic
             # 使用者未登入，不加入購物車
             return
 
-        # 防重複機制：同一個商品在 3 秒內不會重複加入
         product_id = product['id']
         current_time = datetime.utcnow().timestamp()
 
+        # 初始化 session 的追蹤資料
         if session_id not in last_product_added:
             last_product_added[session_id] = {}
+        if session_id not in product_scan_count:
+            product_scan_count[session_id] = {}
+        if session_id not in last_scanned_product:
+            last_scanned_product[session_id] = None
 
+        # 時間防重複：同一個商品在 3 秒內不會重複加入
         last_added_time = last_product_added[session_id].get(product_id, 0)
-
-        if current_time - last_added_time < 3.0:  # 3 秒防重複
+        if current_time - last_added_time < 3.0:
             return
 
-        # 更新最後加入時間
-        last_product_added[session_id][product_id] = current_time
+        # 檢查是否為連續掃描同一商品
+        last_product = last_scanned_product[session_id]
 
-        # Task 006: 加入購物車
+        if last_product == product_id:
+            # 連續掃描同一商品，增加計數
+            product_scan_count[session_id][product_id] = product_scan_count[session_id].get(product_id, 0) + 1
+        else:
+            # 掃描了不同商品，重置該商品的計數
+            product_scan_count[session_id][product_id] = 1
+
+        # 檢查連續掃描次數是否超過 2 次
+        scan_count = product_scan_count[session_id].get(product_id, 0)
+        if scan_count > 2:
+            # 超過 2 次，需要先掃描其他商品（靜默忽略，不通知前端）
+            return
+
+        # 更新追蹤資料
+        last_product_added[session_id][product_id] = current_time
+        last_scanned_product[session_id] = product_id
+
+        # 加入購物車
         cart_service = get_cart_service()
         cart_summary = cart_service.add_item(session_id, product)
 
@@ -569,7 +594,7 @@ async def handle_product_detected(session_id: str, product: dict, detection: dic
             "confidence": detection['confidence']
         })
 
-        print(f"📦 商品加入購物車: {product['name']} (信心度: {detection['confidence']:.2f})")
+        print(f"📦 商品加入購物車: {product['name']} (第 {scan_count} 次，信心度: {detection['confidence']:.2f})")
 
     except Exception as e:
         print(f"❌ 處理商品偵測錯誤: {e}")
@@ -1269,6 +1294,346 @@ async def delete_user(user_id: str):
     except Exception as exc:
         print(f"❌ 刪除使用者錯誤: {exc}")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ==================== 商品管理 API ====================
+
+@app.get("/api/admin/products")
+async def get_admin_products(
+    page: int = 1,
+    page_size: int = 20,
+    category: str = None,
+    is_active: bool = None,
+    search: str = None
+):
+    """
+    取得所有商品（管理後台用，含分頁）
+    """
+    try:
+        product_service = get_product_service()
+        result = product_service.get_all_products(
+            page=page,
+            page_size=page_size,
+            category=category,
+            is_active=is_active,
+            search=search
+        )
+
+        return JSONResponse(
+            content={
+                "success": True,
+                **result
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ 取得商品列表錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/admin/products/categories")
+async def get_product_categories():
+    """
+    取得所有商品分類
+    """
+    try:
+        product_service = get_product_service()
+        categories = product_service.get_categories()
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "categories": categories
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ 取得商品分類錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/admin/products/yolo-classes")
+async def get_yolo_classes():
+    """
+    取得 YOLO 模型所有可用的類別
+    """
+    try:
+        yolo_service = get_yolo_service()
+        available_classes = yolo_service.get_available_classes()
+
+        # 取得已使用的類別
+        product_service = get_product_service()
+        used_classes = product_service.get_yolo_classes()
+        used_ids = {c['id'] for c in used_classes}
+
+        # 標記哪些類別已被使用
+        for cls in available_classes:
+            cls['is_used'] = cls['id'] in used_ids
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "classes": available_classes,
+                "total": len(available_classes)
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ 取得 YOLO 類別錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/admin/products/{product_id}")
+async def get_admin_product(product_id: str):
+    """
+    取得單一商品詳情
+    """
+    try:
+        product_service = get_product_service()
+        product = product_service.get_product_by_id(product_id)
+
+        if not product:
+            raise HTTPException(status_code=404, detail="商品不存在")
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "product": product
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"❌ 取得商品詳情錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/admin/products")
+async def create_product(data: dict):
+    """
+    新增商品
+    """
+    try:
+        # 驗證必要欄位
+        required_fields = ['name', 'price', 'yolo_class_id', 'yolo_class_name']
+        for field in required_fields:
+            if field not in data or data[field] is None:
+                raise HTTPException(status_code=400, detail=f"缺少必要欄位: {field}")
+
+        product_service = get_product_service()
+        product = product_service.create_product(data)
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "商品新增成功",
+                "product": product
+            }
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"❌ 新增商品錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.put("/api/admin/products/{product_id}")
+async def update_product(product_id: str, data: dict):
+    """
+    更新商品
+    """
+    try:
+        product_service = get_product_service()
+        product = product_service.update_product(product_id, data)
+
+        if not product:
+            raise HTTPException(status_code=404, detail="商品不存在")
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "商品更新成功",
+                "product": product
+            }
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"❌ 更新商品錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.delete("/api/admin/products/{product_id}")
+async def delete_product(product_id: str):
+    """
+    刪除商品
+    """
+    try:
+        product_service = get_product_service()
+        success = product_service.delete_product(product_id)
+
+        if not success:
+            raise HTTPException(status_code=404, detail="商品不存在")
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "商品已刪除"
+            }
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"❌ 刪除商品錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/admin/products/{product_id}/image")
+async def upload_product_image(product_id: str, data: dict):
+    """
+    上傳商品圖片
+    """
+    try:
+        image_data = data.get('image')
+        if not image_data:
+            raise HTTPException(status_code=400, detail="缺少圖片資料")
+
+        product_service = get_product_service()
+
+        # 檢查商品是否存在
+        product = product_service.get_product_by_id(product_id)
+        if not product:
+            raise HTTPException(status_code=404, detail="商品不存在")
+
+        # 更新圖片
+        updated_product = product_service.update_product(product_id, {'image': image_data})
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "圖片上傳成功",
+                "product": updated_product
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"❌ 上傳商品圖片錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ==================== AI 聊天 API ====================
+
+@app.get("/api/ai/health")
+async def ai_health_check():
+    """
+    檢查 AI 服務狀態
+    """
+    try:
+        ollama_service = get_ollama_service()
+        is_healthy = await ollama_service.check_health()
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "status": "healthy" if is_healthy else "unhealthy",
+                "model": ollama_service.model,
+                "base_url": ollama_service.base_url
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ AI 健康檢查錯誤: {exc}")
+        return JSONResponse(
+            content={
+                "success": False,
+                "status": "error",
+                "error": str(exc)
+            }
+        )
+
+
+@app.post("/api/ai/chat")
+async def ai_chat(data: dict):
+    """
+    與 AI 對話
+    """
+    try:
+        message = data.get('message')
+        conversation_history = data.get('history', [])
+
+        if not message:
+            raise HTTPException(status_code=400, detail="缺少訊息內容")
+
+        ollama_service = get_ollama_service()
+        response = await ollama_service.chat(message, conversation_history)
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "response": response
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"❌ AI 對話錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/ai/refresh")
+async def ai_refresh_context():
+    """
+    重新整理 AI 商品上下文
+    """
+    try:
+        ollama_service = get_ollama_service()
+        ollama_service.refresh_products_context()
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "message": "AI 商品上下文已更新"
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ 重新整理 AI 上下文錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/ai/products-json")
+async def get_ai_products_json():
+    """
+    取得 AI 使用的商品 JSON 資料
+    """
+    try:
+        ollama_service = get_ollama_service()
+        products_json = ollama_service.get_products_json()
+
+        return JSONResponse(
+            content={
+                "success": True,
+                "products": products_json
+            }
+        )
+
+    except Exception as exc:
+        print(f"❌ 取得商品 JSON 錯誤: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc))
+
 
 # ==================== 靜態檔案 ====================
 
