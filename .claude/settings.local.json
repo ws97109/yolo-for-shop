@@ -27,7 +27,9 @@
       "Bash(fi)",
       "Bash(cd:*)",
       "Bash(wc:*)",
-      "Bash(git checkout yolo1125/backend/main.py yolo1125/frontend/index.html yolo1125/frontend/static/js/camera.js yolo1125/frontend/static/js/main.js)"
+      "Bash(git checkout yolo1125/backend/main.py yolo1125/frontend/index.html yolo1125/frontend/static/js/camera.js yolo1125/frontend/static/js/main.js)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
