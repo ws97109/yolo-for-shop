@@ -272,7 +272,6 @@ yolo-for-shop/
 - 模型路徑: `runs/detect/supermarket_product_detector/weights/best.pt`
 - 信心度門檻: 0.8
 - 處理頻率: 每 0.2 秒
-- 支援類別: 元翠茶 (class 0)、分解茶 (class 1)
 
 **偵測流程**:
 1. 前端每秒傳送影像幀至後端 (WebSocket)
@@ -595,5 +594,5 @@ MIT License
 
 ---
 
-**YOLO1125 Development Team**
-© 2024 All Rights Reserved
+**YOLOshop Development Team**
+© 2026 All Rights Reserved
